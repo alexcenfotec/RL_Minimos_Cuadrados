@@ -60,6 +60,10 @@ if archivo_subido is not None:
             # Generar predicciones y evaluar
             predicciones = modelo.predecir(X)
             mse = modelo.evaluar_mse(y, predicciones)
+            
+            # --- NUEVO: Cálculo del RMSE usando numpy ---
+            rmse = np.sqrt(mse) 
+            
             r2 = modelo.evaluar_r2(y, predicciones)
             
             # Mostrar las métricas en la interfaz
@@ -67,7 +71,8 @@ if archivo_subido is not None:
             col1, col2 = st.columns(2) # Creamos dos columnas
             
             with col1:
-                st.metric(label="Error Cuadrático Medio (MSE)", value=round(mse, 4))
+                # --- NUEVO: Mostramos el RMSE en lugar del MSE ---
+                st.metric(label="Raíz del Error Cuadrático Medio (RMSE)", value=round(rmse, 4))
             with col2:
                 st.metric(label="Coeficiente R²", value=round(r2, 4))
 
@@ -77,17 +82,20 @@ if archivo_subido is not None:
             # 1. Crear el lienzo del gráfico
             fig_dispersion, ax_dispersion = plt.subplots()
             
-            # 2. Dibujar los puntos (Real vs Predicción)
-            ax_dispersion.scatter(y, predicciones, alpha=0.6, color='blue')
+            # 2. Dibujar los puntos (Real vs Predicción) --- NUEVO: Agregamos label ---
+            ax_dispersion.scatter(y, predicciones, alpha=0.6, color='blue', label='Datos (Real vs Predicho)')
             
-            # 3. Dibujar una línea roja punteada que representa la "predicción perfecta"
+            # 3. Dibujar una línea roja punteada que representa la "predicción perfecta" --- NUEVO: Agregamos label ---
             limite_min = min(y.min(), predicciones.min())
             limite_max = max(y.max(), predicciones.max())
-            ax_dispersion.plot([limite_min, limite_max], [limite_min, limite_max], color='red', linestyle='--')
+            ax_dispersion.plot([limite_min, limite_max], [limite_min, limite_max], color='red', linestyle='--', label='Línea de Predicción Perfecta')
             
             # 4. Etiquetas
             ax_dispersion.set_xlabel("Valores Reales")
             ax_dispersion.set_ylabel("Valores Predichos")
+            
+            # --- NUEVO: Activamos la leyenda ---
+            ax_dispersion.legend() 
             
             # 5. Mostrar el gráfico en la interfaz de Streamlit
             st.pyplot(fig_dispersion)
