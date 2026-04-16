@@ -1,97 +1,82 @@
-import numpy as np;
-import pandas as pd;
-import matplotlib.pyplot as plt;
+import numpy as np
 
 class ModeloRegresionMultiple:
     def __init__(self, X, y):
-        # Obtenemos la cantidad de filas (muestras)
+        """
+        Constructor de la clase.
+        Prepara los datos para el cálculo de la regresión.
+        """
+        # Obtenemos el número de filas (muestras) del dataset
         n_muestras = X.shape[0]
         
-        # 🏗️ Construimos la matriz de diseño agregando la columna de unos al inicio
+        # 🏗️ Construcción de la Matriz de Diseño:
+        # Para incluir el 'intercepto' (beta 0) en la multiplicación de matrices,
+        # agregamos una columna llena de unos al inicio de nuestras variables X.
         columna_unos = np.ones((n_muestras, 1))
         self.X = np.column_stack((columna_unos, X))
         
-        # Guardamos el vector de la variable dependiente
+        # Guardamos la variable objetivo (y)
         self.y = y
         
-# Método para ajustar el modelo de regresión múltiple utilizando mínimos cuadrados
-    def ajustar(self):
-        # Calculamos los coeficientes beta mediante mínimos cuadrados
-        self.coeficientes = np.linalg.inv(self.X.T @ self.X) @ (self.X.T @ self.y)
+        # Aquí se guardarán los resultados (Betas) una vez entrenado el modelo
+        self.coeficientes = None
 
-# Método para predecir los valores utilizando los coeficientes ajustados
+    def ajustar(self):
+        """
+        Entrena el modelo usando la Ecuación Normal de Mínimos Cuadrados.
+        Fórmula: beta = (X^T * X)^-1 * X^T * y
+        """
+        # 1. Calculamos la transpuesta de X multiplicada por X (X^T * X)
+        xt_x = self.X.T @ self.X
+        
+        # 2. Calculamos la inversa de ese resultado
+        inversa_xt_x = np.linalg.inv(xt_x)
+        
+        # 3. Multiplicamos por la transpuesta de X y luego por el vector y
+        # El resultado son los coeficientes óptimos (Betas)
+        self.coeficientes = inversa_xt_x @ (self.X.T @ self.y)
+
     def predecir(self, X_nuevo):
-        # Obtenemos la cantidad de filas de los nuevos datos
+        """
+        Toma nuevos datos y predice el valor de 'y' usando los coeficientes calculados.
+        """
         n_muestras_nuevas = X_nuevo.shape[0]
         
-        # Creamos la columna de unos y la unimos a la matriz
+        # También debemos agregar la columna de unos a los datos nuevos para que la matriz coincida
         columna_unos = np.ones((n_muestras_nuevas, 1))
         X_nuevo_transformado = np.column_stack((columna_unos, X_nuevo))
         
-        # Calculamos y retornamos las predicciones
-        predicciones = X_nuevo_transformado @ self.coeficientes
-        return predicciones 
+        # Realizamos el producto punto entre los datos y los coeficientes (Y = X * Beta)
+        return X_nuevo_transformado @ self.coeficientes
 
-# Método para evaluar el modelo utilizando el error cuadrático medio (MSE)
     def evaluar_mse(self, y_real, y_pred):
-        mse_cuadrado = (y_real - y_pred) ** 2
-        mse_final = mse_cuadrado.mean()
-        return mse_final  
+        """
+        Calcula el Error Cuadrático Medio (MSE).
+        Mide el promedio de los errores al cuadrado.
+        """
+        # (Valor Real - Valor Predicho)^2
+        errores_cuadrados = (y_real - y_pred) ** 2
+        # Retornamos el promedio de esos errores
+        return errores_cuadrados.mean()
 
+    def evaluar_rmse(self, y_real, y_pred):
+        """
+        Calcula la Raíz del Error Cuadrático Medio (RMSE).
+        Es la métrica en las mismas unidades que la variable 'y'.
+        """
+        # Aplicamos la raíz cuadrada al MSE calculado arriba
+        return np.sqrt(self.evaluar_mse(y_real, y_pred))
 
-# Método para evaluar el modelo utilizando el coeficiente de determinación (R^2)
     def evaluar_r2(self, y_real, y_pred):
-        # 1. Suma de Cuadrados Totales (SStot)
+        """
+        Calcula el Coeficiente de Determinación (R²).
+        Indica qué porcentaje de la variación de los datos explica el modelo.
+        """
+        # 1. Suma de Cuadrados Totales (Variación total de los datos reales)
         ss_tot = np.sum((y_real - y_real.mean()) ** 2)
         
-        # 2. Suma de Cuadrados de los Residuos (SSres)
+        # 2. Suma de Cuadrados de los Residuos (Variación que el modelo NO explicó)
         ss_res = np.sum((y_real - y_pred) ** 2)
         
-        # 3. Cálculo final de R^2
-        r2 = 1 - (ss_res / ss_tot)
-        
-        return r2 
-
-
-# ==========================================
-# 📂 SECCIÓN: CARGAR LOS DATOS
-# ==========================================
-
-# ------------------------------------------
-# 1.1 Lectura de CSV
-# ------------------------------------------
-
-datosVino = pd.read_csv('winequality-red.csv')
-
-# 2. Extraer la variable dependiente (y) y convertirla a NumPy
-y_Vino = datosVino['quality'].values
-
-# 3. Extraer las variables independientes (X) eliminando la columna objetivo y convirtiendo a NumPy
-# (axis=1 le indica a pandas que queremos eliminar una columna, no una fila)
-X_Vino = datosVino.drop('quality', axis=1).values 
-
-
-# 1. Instanciar: Creamos el "objeto" pasándole nuestra materia prima
-modelo_vino = ModeloRegresionMultiple(X_Vino, y_Vino)
-
-# 2. Ajustar: Le pedimos al objeto que calcule la matemática interna
-modelo_vino.ajustar()
-
-# 3. Predecir: Le damos nuevos datos y nos devuelve las predicciones
-
-prediccionesVino = modelo_vino.predecir(X_Vino) 
-
-# 4. Comparativa visual de los primeros 5 casos
-print("\n--- Comparativa: Real vs Predicción ---")
-for i in range(5):
-    real = y_Vino[i]
-    predicho = prediccionesVino[i]
-    diferencia = real - predicho
-    print(f"Caso {i+1}: Real = {real} | Predicho = {predicho:.2f} | Diferencia = {diferencia:.2f}")
-
-# 5. Evaluar: Comparamos las predicciones con los valores reales utilizando métricas de evaluación
-mse_vino = modelo_vino.evaluar_mse(y_Vino, prediccionesVino)
-r2_vino = modelo_vino.evaluar_r2(y_Vino, prediccionesVino)
-
-print(f"MSE del Vino: {mse_vino}")
-print(f"R² del Vino: {r2_vino}")
+        # 3. Fórmula final: 1 - (Error / Variación Total)
+        return 1 - (ss_res / ss_tot)
