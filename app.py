@@ -15,7 +15,7 @@ archivo_subido = st.file_uploader("Sube tu dataset (CSV)", type=["csv"])
 if archivo_subido is not None:
     df = pd.read_csv(archivo_subido)
     st.write("### Vista previa de los datos")
-    st.dataframe(df.head())
+    st.dataframe(df.head(10))  # Mostramos las primeras 10 filas para una mejor visualización
 
     # 2. CONFIGURACIÓN DEL MODELO (Barra lateral)
     st.sidebar.header("Configuración del Modelo")
@@ -43,7 +43,7 @@ if archivo_subido is not None:
             modelo = ModeloRegresionMultiple(X, y)
             modelo.ajustar()
             
-            # --- 🛠️ NUEVO: Guardamos el modelo en la memoria de Streamlit ---
+            # --- 🛠️ Guardamos el modelo en la memoria de Streamlit ---
             st.session_state['modelo_entrenado'] = modelo
             
             predicciones = modelo.predecir(X)
