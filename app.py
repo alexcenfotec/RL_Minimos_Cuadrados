@@ -23,18 +23,20 @@ if archivo_subido is not None:
 
     # Visualización: Mapa de calor
     if st.checkbox("Mostrar mapa de calor de correlación"):
-        st.write("### 🌡️ Matriz de Correlación")
         
-        # Seleccionamos las columnas que nos interesan (X + y)
-        columnas_analisis = columnas_x + [columna_y]
-        matriz_corr = df[columnas_analisis].corr()
+        # --- Englobamos título y gráfico en la misma columna central ---
+        col_izq, col_centro, col_der = st.columns([1, 2, 1])
         
-        # --- 🛠️ SOLUCIÓN 1: Definimos un tamaño fijo (6 de ancho, 4 de alto) ---
-        fig, ax = plt.subplots(figsize=(6, 4))
-        sns.heatmap(matriz_corr, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
-        
-        # --- 🛠️ SOLUCIÓN 2: Le decimos a Streamlit que NO lo estire ---
-        st.pyplot(fig, use_container_width=False)
+        with col_centro:
+            st.write("### 🌡️ Matriz de Correlación") # Ahora el título nacerá alineado al gráfico
+            
+            # Seleccionamos las columnas que nos interesan (X + y)
+            columnas_analisis = columnas_x + [columna_y]
+            matriz_corr = df[columnas_analisis].corr()
+            
+            fig, ax = plt.subplots(figsize=(6, 4))
+            sns.heatmap(matriz_corr, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
+            st.pyplot(fig, use_container_width=False)
 
     # 3. ENTRENAMIENTO DEL MODELO
     if columnas_x and columna_y:
@@ -50,38 +52,40 @@ if archivo_subido is not None:
             # Realizamos predicciones
             predicciones = modelo.predecir(X)
             
-            # --- LLAMADA A LOS MÉTODOS DE LA CLASE ---
+            # Llamada a los métodos de la clase
             rmse = modelo.evaluar_rmse(y, predicciones)
             r2 = modelo.evaluar_r2(y, predicciones)
             
-            # Mostramos resultados en columnas
-            st.write("### Resultados del Entrenamiento")
-            c1, c2 = st.columns(2)
-            c1.metric("RMSE (Error promedio)", f"{rmse:.4f}")
-            c2.metric("Coeficiente de Determinación R²", f"{r2:.4f}")
+            # --- Unificamos toda la sección de Resultados en el centro ---
+            col_izq_res, col_centro_res, col_der_res = st.columns([1, 2, 1])
+            
+            with col_centro_res:
+                # Todo lo que esté aquí dentro estará alineado
+                st.write("### Resultados del Entrenamiento")
+                
+                # --- Anidamos las columnas de métricas para que no sean tan anchas ---
+                c1, c2 = st.columns(2)
+                c1.metric("RMSE (Error promedio)", f"{rmse:.4f}")
+                c2.metric("Coeficiente de Determinación R²", f"{r2:.4f}")
+                
+                st.write("---") # Una línea sutil para separar visualmente
 
-            # 4. GRÁFICO COMPARATIVO
-            st.write("### 📉 Comparativa: Real vs Predicción")
-            
-            # --- 🛠️ SOLUCIÓN 3: Creamos columnas para centrar el gráfico ---
-            col_izq, col_centro, col_der = st.columns([1, 2, 1])
-            
-            with col_centro:
-                # 1. Crear el lienzo del gráfico con tamaño controlado
+                # 4. GRÁFICO COMPARATIVO
+                st.write("### 📉 Comparativa: Real vs Predicción") # Alineado con el gráfico
+                
+                # Crear el lienzo del gráfico con tamaño controlado
                 fig_dispersion, ax_dispersion = plt.subplots(figsize=(7, 5))
                 
-                # 2. Dibujar los puntos (Real vs Predicción)
+                # Dibujar los puntos y líneas
                 ax_dispersion.scatter(y, predicciones, alpha=0.6, color='blue', label='Datos (Real vs Predicho)')
-                
-                # 3. Dibujar una línea roja punteada que representa la "predicción perfecta"
                 limite_min = min(y.min(), predicciones.min())
                 limite_max = max(y.max(), predicciones.max())
                 ax_dispersion.plot([limite_min, limite_max], [limite_min, limite_max], color='red', linestyle='--', label='Línea de Predicción Perfecta')
                 
-                # 4. Etiquetas
+                # Etiquetas
                 ax_dispersion.set_xlabel("Valores Reales")
                 ax_dispersion.set_ylabel("Valores Predichos")
                 ax_dispersion.legend() 
                 
-                # 5. Mostrar el gráfico en la interfaz de Streamlit
-                st.pyplot(fig_dispersion)
+                # Mostrar el gráfico
+                st.pyplot(fig_dispersion, use_container_width=False)
