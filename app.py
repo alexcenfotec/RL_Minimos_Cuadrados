@@ -24,12 +24,17 @@ if archivo_subido is not None:
     # Visualización: Mapa de calor
     if st.checkbox("Mostrar mapa de calor de correlación"):
         st.write("### 🌡️ Matriz de Correlación")
+        
+        # Seleccionamos las columnas que nos interesan (X + y)
         columnas_analisis = columnas_x + [columna_y]
         matriz_corr = df[columnas_analisis].corr()
         
-        fig, ax = plt.subplots()
+        # --- 🛠️ SOLUCIÓN 1: Definimos un tamaño fijo (6 de ancho, 4 de alto) ---
+        fig, ax = plt.subplots(figsize=(6, 4))
         sns.heatmap(matriz_corr, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
-        st.pyplot(fig)
+        
+        # --- 🛠️ SOLUCIÓN 2: Le decimos a Streamlit que NO lo estire ---
+        st.pyplot(fig, use_container_width=False)
 
     # 3. ENTRENAMIENTO DEL MODELO
     if columnas_x and columna_y:
@@ -56,17 +61,27 @@ if archivo_subido is not None:
             c2.metric("Coeficiente de Determinación R²", f"{r2:.4f}")
 
             # 4. GRÁFICO COMPARATIVO
-            st.write("### 📉 Comparativa: Valores Reales vs Predichos")
-            fig_disp, ax_disp = plt.subplots(figsize=(10, 6))
+            st.write("### 📉 Comparativa: Real vs Predicción")
             
-            # Puntos de dispersión
-            ax_disp.scatter(y, predicciones, alpha=0.5, color='royalblue', label='Datos del modelo')
+            # --- 🛠️ SOLUCIÓN 3: Creamos columnas para centrar el gráfico ---
+            col_izq, col_centro, col_der = st.columns([1, 2, 1])
             
-            # Línea de referencia ideal (Predicción perfecta)
-            limite = [min(y.min(), predicciones.min()), max(y.max(), predicciones.max())]
-            ax_disp.plot(limite, limite, color='red', linestyle='--', linewidth=2, label='Predicción Ideal')
-            
-            ax_disp.set_xlabel("Valores Reales (y)")
-            ax_disp.set_ylabel("Valores Predichos (ŷ)")
-            ax_disp.legend()
-            st.pyplot(fig_disp)
+            with col_centro:
+                # 1. Crear el lienzo del gráfico con tamaño controlado
+                fig_dispersion, ax_dispersion = plt.subplots(figsize=(7, 5))
+                
+                # 2. Dibujar los puntos (Real vs Predicción)
+                ax_dispersion.scatter(y, predicciones, alpha=0.6, color='blue', label='Datos (Real vs Predicho)')
+                
+                # 3. Dibujar una línea roja punteada que representa la "predicción perfecta"
+                limite_min = min(y.min(), predicciones.min())
+                limite_max = max(y.max(), predicciones.max())
+                ax_dispersion.plot([limite_min, limite_max], [limite_min, limite_max], color='red', linestyle='--', label='Línea de Predicción Perfecta')
+                
+                # 4. Etiquetas
+                ax_dispersion.set_xlabel("Valores Reales")
+                ax_dispersion.set_ylabel("Valores Predichos")
+                ax_dispersion.legend() 
+                
+                # 5. Mostrar el gráfico en la interfaz de Streamlit
+                st.pyplot(fig_dispersion)
