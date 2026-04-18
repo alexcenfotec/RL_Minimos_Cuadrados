@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np  # Lo necesitamos para crear la matriz de los nuevos datos
 import seaborn as sns
 import matplotlib.pyplot as plt
 from ModeloRegresionMultiple import ModeloRegresionMultiple
@@ -23,14 +24,9 @@ if archivo_subido is not None:
 
     # Visualización: Mapa de calor
     if st.checkbox("Mostrar mapa de calor de correlación"):
-        
-        # --- Englobamos título y gráfico en la misma columna central ---
         col_izq, col_centro, col_der = st.columns([1, 2, 1])
-        
         with col_centro:
-            st.write("### 🌡️ Matriz de Correlación") # Ahora el título nacerá alineado al gráfico
-            
-            # Seleccionamos las columnas que nos interesan (X + y)
+            st.write("### 🌡️ Matriz de Correlación")
             columnas_analisis = columnas_x + [columna_y]
             matriz_corr = df[columnas_analisis].corr()
             
@@ -40,52 +36,69 @@ if archivo_subido is not None:
 
     # 3. ENTRENAMIENTO DEL MODELO
     if columnas_x and columna_y:
-        # Extraemos los valores para el modelo
         X = df[columnas_x].values
         y = df[columna_y].values
 
         if st.button("Entrenar Modelo"):
-            # Instanciamos y entrenamos usando la clase refactorizada
             modelo = ModeloRegresionMultiple(X, y)
             modelo.ajustar()
             
-            # Realizamos predicciones
-            predicciones = modelo.predecir(X)
+            # --- 🛠️ NUEVO: Guardamos el modelo en la memoria de Streamlit ---
+            st.session_state['modelo_entrenado'] = modelo
             
-            # Llamada a los métodos de la clase
+            predicciones = modelo.predecir(X)
             rmse = modelo.evaluar_rmse(y, predicciones)
             r2 = modelo.evaluar_r2(y, predicciones)
             
-            # --- Unificamos toda la sección de Resultados en el centro ---
             col_izq_res, col_centro_res, col_der_res = st.columns([1, 2, 1])
-            
             with col_centro_res:
-                # Todo lo que esté aquí dentro estará alineado
                 st.write("### Resultados del Entrenamiento")
-                
-                # --- Anidamos las columnas de métricas para que no sean tan anchas ---
                 c1, c2 = st.columns(2)
                 c1.metric("RMSE (Error promedio)", f"{rmse:.4f}")
                 c2.metric("Coeficiente de Determinación R²", f"{r2:.4f}")
                 
-                st.write("---") # Una línea sutil para separar visualmente
-
-                # 4. GRÁFICO COMPARATIVO
-                st.write("### 📉 Comparativa: Real vs Predicción") # Alineado con el gráfico
+                st.write("---")
+                st.write("### 📉 Comparativa: Real vs Predicción")
                 
-                # Crear el lienzo del gráfico con tamaño controlado
                 fig_dispersion, ax_dispersion = plt.subplots(figsize=(7, 5))
-                
-                # Dibujar los puntos y líneas
                 ax_dispersion.scatter(y, predicciones, alpha=0.6, color='blue', label='Datos (Real vs Predicho)')
                 limite_min = min(y.min(), predicciones.min())
                 limite_max = max(y.max(), predicciones.max())
                 ax_dispersion.plot([limite_min, limite_max], [limite_min, limite_max], color='red', linestyle='--', label='Línea de Predicción Perfecta')
                 
-                # Etiquetas
                 ax_dispersion.set_xlabel("Valores Reales")
                 ax_dispersion.set_ylabel("Valores Predichos")
                 ax_dispersion.legend() 
-                
-                # Mostrar el gráfico
                 st.pyplot(fig_dispersion, use_container_width=False)
+
+    # =====================================================================
+    # 4. PREDICCIÓN INTERACTIVA CON NUEVOS DATOS
+    # =====================================================================
+    
+    # Solo mostramos esta sección si el modelo ya fue entrenado y guardado en memoria
+    if 'modelo_entrenado' in st.session_state:
+        st.write("---")
+        st.write("### 🔮 Realizar Nuevas Predicciones")
+        st.markdown("Ingresa nuevos valores para predecir el resultado basándonos en el modelo entrenado:")
+        
+        # Creamos columnas dinámicamente según la cantidad de variables X elegidas
+        columnas_inputs = st.columns(len(columnas_x))
+        valores_nuevos = []
+        
+        # Generamos una cajita de texto (number_input) para cada variable característica
+        for i, col_name in enumerate(columnas_x):
+            with columnas_inputs[i]:
+                valor = st.number_input(f"Ingresa el valor para '{col_name}'", value=0.0, step=0.5)
+                valores_nuevos.append(valor)
+                
+        # Botón para ejecutar la predicción
+        if st.button("Calcular Predicción"):
+            # 1. Convertimos la lista de valores en una matriz de 1 fila: [[val1, val2...]]
+            X_nuevo = np.array([valores_nuevos])
+            
+            # 2. Extraemos el modelo de la memoria y llamamos al método predecir
+            modelo_guardado = st.session_state['modelo_entrenado']
+            resultado = modelo_guardado.predecir(X_nuevo)
+            
+            # 3. Mostramos el resultado con un cuadro de éxito (verde)
+            st.success(f"🌟 El valor predicho para **{columna_y}** es: **{resultado[0]:.2f}**")
