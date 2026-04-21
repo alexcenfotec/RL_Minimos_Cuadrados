@@ -102,3 +102,9 @@ if archivo_subido is not None:
             
             # 3. Mostramos el resultado con un cuadro de éxito (verde)
             st.success(f"🌟 El valor predicho para **{columna_y}** es: **{resultado[0]:.2f}**")
+
+    
+     # =====================================================================
+    # Para ejecutar esta aplicación en Streamlit, abre la terminal acá en Visual Studio Code y asegúrate de estar en el entorno virtual donde instalaste Streamlit y las demás dependencias.
+    # Luego, ejecuta el siguiente comando: streamlit run app.py
+    # =====================================================================
